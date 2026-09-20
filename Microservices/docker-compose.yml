@@ -1,0 +1,18 @@
+services:
+  user-service:
+    build: ./user-service
+
+  product-service:
+    build: ./product-service
+
+  order-service:
+    build: ./order-service
+
+  gateway-service:
+    build: ./gateway-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
