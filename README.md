@@ -1,68 +1,119 @@
-# Microservices-Task
+# Microservices Task
 
 ## Overview
-This document provides details on testing various services after running the `docker-compose` file. These services include User, Product, Order, and Gateway Services. Each service has its own endpoints for testing purposes.
 
----
+This project contains four Node.js services:
 
-## Services and Endpoints
+- `user-service` provides user data.
+- `product-service` provides product data.
+- `order-service` creates and lists orders.
+- `gateway-service` exposes a single public API and forwards requests to the other services.
 
-### **User Service**
-- **Base URL:** `http://localhost:3000`
-- **Endpoints:**
-  - **List Users:**  
-    ```
-    curl http://localhost:3000/users
-    ```
-    Or open in your browser: [http://localhost:3000/users](http://localhost:3000/users)
+Each service has its own `Dockerfile`. The services are built and run together using the `docker-compose.yml` file in the `Microservices` directory.
 
----
+## Project structure
 
-### **Product Service**
-- **Base URL:** `http://localhost:3001`
-- **Endpoints:**
-  - **List Products:**  
-    ```
-    curl http://localhost:3001/products
-    ```
-    Or open in your browser: [http://localhost:3001/products](http://localhost:3001/products)
+```text
+Microservices/
+├── docker-compose.yml
+├── gateway-service/
+│   ├── Dockerfile
+│   ├── app.js
+│   └── package.json
+├── order-service/
+│   ├── Dockerfile
+│   ├── app.js
+│   └── package.json
+├── product-service/
+│   ├── Dockerfile
+│   ├── app.js
+│   └── package.json
+└── user-service/
+    ├── Dockerfile
+    ├── app.js
+    └── package.json
+```
 
----
+## Docker setup
 
-### **Order Service**
-- **Base URL:** `http://localhost:3002`
-- **Endpoints:**
-  - **List Orders:**  
-    ```
-    curl http://localhost:3002/orders
-    ```
-    Or open in your browser: [http://localhost:3002/orders](http://localhost:3002/orders)
+The Dockerfiles use the `node:22-slim` image, install each service's dependencies, and start the service with `node app.js`.
 
----
+Docker Compose creates a private network for the services. The gateway reaches the backend services using their Compose service names:
 
-### **Gateway Service**
-- **Base URL:** `http://localhost:3003/api`
-- **Endpoints:**
-  - **Users:**  
-    ```
-    curl http://localhost:3003/api/users
-    ```
-  - **Products:**  
-    ```
-    curl http://localhost:3003/api/products
-    ```
-  - **Orders:**  
-    ```
-    curl http://localhost:3003/api/orders
-    ```
+| Service | Internal address | Published to host |
+| --- | --- | --- |
+| User | `http://user-service:3000` | No |
+| Product | `http://product-service:3001` | No |
+| Order | `http://order-service:3002` | No |
+| Gateway | `http://gateway-service:3003` | `http://localhost:3003` |
 
----
+Only the gateway is exposed to the host. Requests to the other services should go through the gateway API.
 
-## Instructions
-1. Start all services using the `docker-compose` file:
-   ```
-   docker-compose up
-   ```
-2. Once the services are running, use the above endpoints to verify the functionality.
+## Run the application
 
-Happy testing!
+From the repository root:
+
+```bash
+cd Microservices
+docker compose up --build -d
+```
+
+Check the container status:
+
+```bash
+docker compose ps
+```
+
+View gateway logs:
+
+```bash
+docker compose logs -f gateway-service
+```
+
+## Gateway endpoints
+
+### Health check
+
+```bash
+curl http://localhost:3003/health
+```
+
+### List users
+
+```bash
+curl http://localhost:3003/api/users
+```
+
+### List products
+
+```bash
+curl http://localhost:3003/api/products
+```
+
+### List orders
+
+```bash
+curl http://localhost:3003/api/orders
+```
+
+### Create an order
+
+```bash
+curl -X POST http://localhost:3003/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{"userId":1,"productId":2}'
+```
+
+Orders are stored in memory and are cleared when the order-service container restarts.
+
+## Stop the application
+
+```bash
+docker compose down
+```
+
+To rebuild after changing application code:
+
+```bash
+docker compose up --build -d
+```
